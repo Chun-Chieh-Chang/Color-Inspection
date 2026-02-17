@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-Hant-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>簡易色差量度解決方案與代碼深度解析</title>
+    <style>
+        /* 全局設定 */
+        body {
+            font-family: "Microsoft JhengHei", "Heiti TC", "Segoe UI", sans-serif;
+            line-height: 1.7;
+            color: #333;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 40px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+        
+        /* 區塊樣式 */
+        .document-section, .analysis-section {
+            background: #fff;
+            padding: 50px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            margin-bottom: 40px;
+        }
+
+        /* 標題樣式 */
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+            margin-bottom: 40px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 40px;
+            padding-left: 15px;
+            border-left: 5px solid #3498db;
+            background-color: #f8f9fa;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        h3 {
+            color: #16a085;
+            margin-top: 30px;
+            font-weight: bold;
+        }
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9em;
+            margin-top: -30px;
+            margin-bottom: 40px;
+        }
+
+        /* 文字內容 */
+        p {
+            margin-bottom: 16px;
+            text-align: justify;
+        }
+        ul, ol {
+            margin-bottom: 20px;
+            padding-left: 25px;
+        }
+        li {
+            margin-bottom: 8px;
+        }
+        strong {
+            color: #c0392b;
+            background-color: #fff5f5;
+            padding: 0 4px;
+        }
+
+        /* 程式碼區塊 */
+        pre {
+            background-color: #282c34;
+            color: #abb2bf;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-family: "Consolas", "Monaco", monospace;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            margin: 20px 0;
+            position: relative;
+        }
+        code {
+            font-family: "Consolas", "Monaco", monospace;
+        }
+        
+        /* 語法高亮模擬 (Python) */
+        .kw { color: #c678dd; font-weight: bold; } /* Keyword */
+        .func { color: #61afef; } /* Function */
+        .str { color: #98c379; } /* String */
+        .num { color: #d19a66; } /* Number */
+        .com { color: #7f8c8d; font-style: italic; } /* Comment */
+        .cls { color: #e5c07b; } /* Class/Type */
+
+        /* 深度解析專用樣式 */
+        .analysis-box {
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            background-color: #fafbfc;
+        }
+        .analysis-title {
+            font-weight: bold;
+            color: #d35400;
+            margin-bottom: 10px;
+            display: block;
+            font-size: 1.1em;
+        }
+        .math-formula {
+            font-family: "Times New Roman", serif;
+            font-style: italic;
+            background: #eee;
+            padding: 5px 10px;
+            border-radius: 4px;
+        }
+        .step-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .step-list li {
+            position: relative;
+            padding-left: 20px;
+            margin-bottom: 15px;
+        }
+        .step-list li::before {
+            content: "➤";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <!-- 第一部分：原始文件內容 -->
+    <div class="document-section">
+        <h1>簡易色差量度解決方案<br><span style="font-size:0.6em">（原始檔案無損輸出）</span></h1>
+        
+        <p>我想要深入研究以下的方案，請提供實踐的細節：</p>
+
+        <h2>步驟 1：建立標準化硬體環境（最關鍵的一步）</h2>
+        <p>不要直接拿手機在辦公桌上拍。您需要一個低成本但穩定的物理環境：</p>
+        <ul>
+            <li><strong>標準光源箱 (Standard Light Box)：</strong>購買一個小型對色燈箱（通常使用 D65 標準光源），確保每次檢測的光線色溫、亮度完全一致。</li>
+            <li><strong>固定支架：</strong>相機（或手機）必須固定在距離產品相同的高度和角度。</li>
+            <li><strong>固定背景：</strong>使用標準灰卡或純黑/純白無反光材質作為背景。</li>
+        </ul>
+
+        <h2>步驟 2：軟體開發邏輯 (或是尋找現成方案)</h2>
+        <p>開發一個簡單的 Python 程式（利用 OpenCV 函式庫）可以輕鬆達成您的需求。邏輯如下：</p>
+        <ul>
+            <li><strong>影像校正：</strong>在拍攝畫面中放入一張色卡 (Color Checker)。軟體先讀取色卡顏色，對整張照片進行色彩校正，消除相機白平衡誤差。</li>
+            <li><strong>色彩轉換：</strong>將 RGB 轉換為 L*a*b* 色彩空間。<br>
+                L：亮度<br>
+                a：紅綠值<br>
+                b：黃藍值
+            </li>
+            <li><strong>計算色差 (ΔE)：</strong><br>
+                軟體抓取產品特定區域的 L*a*b* 值，與資料庫中的「黃金樣品」數值進行公式計算：<br>
+                <span class="math-formula">ΔE = √[ (ΔL)² + (Δa)² + (Δb)² ]</span>
+            </li>
+            <li><strong>判定標準：</strong>
+                <ul>
+                    <li>ΔE < 1.0：人眼幾乎無法分辨（極優）。</li>
+                    <li>ΔE < 2.0：人眼可察覺細微差異（通常是醫療產品的可接受範圍）。</li>
+                    <li>ΔE > 3.0：明顯色差（NG）。</li>
+                </ul>
+            </li>
+        </ul>
+
+        <h2>步驟 3：針對「透明度」的特殊處理</h2>
+        <p>既然是醫療塑膠射出，透明度（Haze/Transmittance）也是關鍵。</p>
+        <ul>
+            <li>單靠反射光（拍照）很難精準判斷透明度差異。</li>
+            <li><strong>軟體解法：</strong>在產品下方放置一個有高對比圖案（例如黑白棋盤格）的底板。拍照後，軟體分析「透過產品看到的黑白對比度」。如果產品變混濁，黑白對比度會下降。</li>
+        </ul>
+
+        <hr style="margin: 40px 0; border: 0; border-top: 1px dashed #ccc;">
+
+        <h3>實踐指南：軟體開發邏輯 (Python + OpenCV)</h3>
+        <p>這是一個從「概念」轉向「工程實踐」的過程。要用計算機視覺（Computer Vision）來做醫療級的品質管控，<strong>「環境的一致性」比「程式碼的複雜度」重要 90%。</strong></p>
+
+        <h4>核心邏輯 1：白平衡校正 (White Balance Correction)</h4>
+        <pre><code><span class="kw">import</span> cv2
+<span class="kw">import</span> numpy <span class="kw">as</span> np
+
+<span class="kw">def</span> <span class="func">calibrate_image</span>(img, ref_rect):
+    <span class="str">"""
+    img: 拍攝的原始圖片
+    ref_rect: 圖片中標準灰卡的座標 (x, y, w, h)
+    """</span>
+    x, y, w, h = ref_rect
+    roi = img[y:y+h, x:x+w]
+    
+    <span class="com"># 計算灰卡目前的平均 RGB</span>
+    avg_b = np.mean(roi[:,:,0])
+    avg_g = np.mean(roi[:,:,1])
+    avg_r = np.mean(roi[:,:,2])
+    
+    <span class="com"># 假設標準灰卡的 RGB 應該都是 128 (或您色卡的標準值)</span>
+    target_gray = <span class="num">128.0</span>
+    
+    <span class="com"># 計算增益係數 (Gain)</span>
+    gain_b = target_gray / avg_b
+    gain_g = target_gray / avg_g
+    gain_r = target_gray / avg_r
+    
+    <span class="com"># 應用到整張圖片 (簡單的線性白平衡)</span>
+    img_corrected = img.astype(np.float32)
+    img_corrected[:,:,0] *= gain_b
+    img_corrected[:,:,1] *= gain_g
+    img_corrected[:,:,2] *= gain_r
+    
+    <span class="com"># 截斷數值並轉回 uint8</span>
+    img_corrected = np.clip(img_corrected, <span class="num">0</span>, <span class="num">255</span>).astype(np.uint8)
+    
+    <span class="kw">return</span> img_corrected</code></pre>
+
+        <h4>核心邏輯 2：計算色差 (ΔE)</h4>
+        <pre><code><span class="kw">def</span> <span class="func">calculate_delta_e</span>(img_sample, img_golden, roi):
+    <span class="str">"""
+    img_sample: 測試產品的照片 (已校正)
+    img_golden: 黃金樣品的照片 (已校正)
+    roi: 產品取樣區域 (x, y, w, h)，避開反光點
+    """</span>
+    x, y, w, h = roi
+    
+    <span class="com"># 1. 切割出產品區域</span>
+    sample_roi = img_sample[y:y+h, x:x+w]
+    golden_roi = img_golden[y:y+h, x:x+w]
+    
+    <span class="com"># 2. 去除噪點 (高斯模糊)</span>
+    sample_roi = cv2.GaussianBlur(sample_roi, (<span class="num">5</span>,<span class="num">5</span>), <span class="num">0</span>)
+    golden_roi = cv2.GaussianBlur(golden_roi, (<span class="num">5</span>,<span class="num">5</span>), <span class="num">0</span>)
+    
+    <span class="com"># 3. 轉換 RGB -> LAB</span>
+    lab_sample = cv2.cvtColor(sample_roi, cv2.COLOR_BGR2LAB).astype(np.float32)
+    lab_golden = cv2.cvtColor(golden_roi, cv2.COLOR_BGR2LAB).astype(np.float32)
+    
+    <span class="com"># 4. 提取 L, a, b 平均值</span>
+    L1, a1, b1 = cv2.mean(lab_sample)[:3]
+    L2, a2, b2 = cv2.mean(lab_golden)[:3]
+    
+    <span class="com"># 5. 計算 Delta E (CIE76 公式)</span>
+    delta_L = L1 - L2
+    delta_a = a1 - a2
+    delta_b = b1 - b2
+    
+    delta_E = np.sqrt(delta_L**2 + delta_a**2 + delta_b**2)
+    
+    <span class="kw">return</span> delta_E, (L1, a1, b1), (L2, a2, b2)</code></pre>
+
+        <h4>實踐邏輯 (Michelson Contrast) - 透明度檢測</h4>
+        <pre><code><span class="kw">def</span> <span class="func">check_transparency</span>(img, roi_black, roi_white):
+    <span class="str">"""
+    img: 產品蓋在棋盤格上的照片
+    roi_black: 透過產品看到的「黑色棋盤格」區域
+    roi_white: 透過產品看到的「白色棋盤格」區域
+    """</span>
+    
+    <span class="com"># 切割區域</span>
+    bx, by, bw, bh = roi_black
+    wx, wy, ww, wh = roi_white
+    
+    region_black = img[by:by+bh, bx:bx+bw]
+    region_white = img[wy:wy+wh, wx:wx+ww]
+    
+    <span class="com"># 轉為灰階來計算亮度</span>
+    gray_black = cv2.cvtColor(region_black, cv2.COLOR_BGR2GRAY)
+    gray_white = cv2.cvtColor(region_white, cv2.COLOR_BGR2GRAY)
+    
+    <span class="com"># 取得平均亮度 (Luminance)</span>
+    L_min = np.mean(gray_black) <span class="com"># 越小越好</span>
+    L_max = np.mean(gray_white) <span class="com"># 越大越好</span>
+    
+    <span class="com"># 計算對比度 (Michelson Contrast 公式)</span>
+    <span class="com"># 值域 0.0 ~ 1.0</span>
+    contrast = (L_max - L_min) / (L_max + L_min + 1e-5) <span class="com"># +1e-5 避免分母為0</span>
+    
+    <span class="kw">return</span> contrast</code></pre>
+    </div>
+
+    <!-- 第二部分：深度詳盡解說 -->
+    <div class="analysis-section">
+        <h1>技術深度解說：代碼運行邏輯</h1>
+        <p class="subtitle">針對上述 Python/OpenCV 代碼的運作原理、數學公式與防呆機制解析</p>
+
+        <div class="analysis-box">
+            <span class="analysis-title">1. 自動白平衡校正 (Auto White Balance Calibration)</span>
+            <p><strong>目的：</strong> 消除因為燈管老化、外界光線變化或相機感光元件特性造成的「色偏」。</p>
+            <p><strong>代碼運作邏輯解析：</strong></p>
+            <ul class="step-list">
+                <li><code>x, y, w, h = ref_rect</code>：我們必須預先知道「色卡/灰卡」在畫面中的固定位置。這就是為什麼「治具」和「固定位置」比代碼更重要。</li>
+                <li><code>np.mean(roi[:,:,0])</code>：計算該區域內藍色通道 (B) 的平均值。如果光線偏黃，藍色數值會偏低。</li>
+                <li><code>gain_b = target_gray / avg_b</code>：這是一個簡單的線性增益 (Gain) 算法。
+                    <br>假設標準灰卡的 B 應該是 128，但拍出來只有 100（因為燈光偏黃）。
+                    <br>Gain = 128 / 100 = 1.28。
+                    <br>我們把整張照片所有像素的 B 通道都乘以 1.28，把它「拉」回標準值。</li>
+                <li><code>img.astype(np.float32)</code>：<strong>關鍵步驟！</strong> 圖像原本是 <code>uint8</code> (0-255 整數)。直接進行乘法運算會導致「溢出」(Overflow)。例如 200 * 1.5 = 300，在 uint8 中會變成 44 (300-256)，造成嚴重破圖。因此必須先轉成浮點數運算。</li>
+                <li><code>np.clip(..., 0, 255)</code>：乘法運算後，有些亮點可能超過 255 (例如反光點變成 300)。<code>clip</code> 函式強制將小於 0 的變 0，大於 255 的變 255，確保轉回圖片格式時不會出錯。</li>
+            </ul>
+        </div>
+
+        <div class="analysis-box">
+            <span class="analysis-title">2. Lab 色差計算 (Delta E Calculation)</span>
+            <p><strong>目的：</strong> 將相機看到的 RGB 數值，轉換為接近人類視覺感知的數值，並量化「差多少」。</p>
+            <p><strong>代碼運作邏輯解析：</strong></p>
+            <ul class="step-list">
+                <li><code>cv2.GaussianBlur(..., (5,5), 0)</code>：<strong>去噪點。</strong> 塑膠表面可能有微小灰塵或感光元件雜訊 (Noise)。如果只取單一像素比對，誤差極大。高斯模糊將周圍 5x5 像素混合，讓顏色變得「平滑均勻」，提升比對穩定性。</li>
+                <li><code>cv2.cvtColor(..., cv2.COLOR_BGR2LAB)</code>：
+                    <br>RGB 是「設備相關」的，同樣的 RGB 在不同螢幕看起來不同，且 RGB 的歐氏距離不代表視覺色差。
+                    <br>Lab 空間 (CIELAB) 是為了模擬人類視覺設計的：
+                    <ul>
+                        <li><strong>L*</strong>: 亮度 (Lightness)</li>
+                        <li><strong>a*</strong>: 紅-綠軸 (Red-Green)</li>
+                        <li><strong>b*</strong>: 黃-藍軸 (Yellow-Blue) — 這是監控塑膠「黃變」最關鍵的指標。</li>
+                    </ul>
+                </li>
+                <li><strong>OpenCV 的 Lab 陷阱：</strong> 標準 CIELAB 的 L 範圍是 0-100，a/b 是 -128 到 +127。但 OpenCV 為了塞進 8-bit 圖片，將 L 映射到 0-255，a/b 映射到 0-255 (原值 + 128)。
+                    <br><strong>結論：</strong> 如果只是做「相對比對」(Sample vs Golden)，直接用 OpenCV 的數值相減即可，不需要轉回標準值。</li>
+                <li><code>np.sqrt(delta_L**2 + ...)</code>：這是標準的歐氏距離公式 (CIE76)。雖然現在有更先進的 CIE2000 公式，但在工業快速檢測且色差較小時，CIE76 計算最快且足夠有效。</li>
+            </ul>
+        </div>
+
+        <div class="analysis-box">
+            <span class="analysis-title">3. 透明度檢測 (Michelson Contrast)</span>
+            <p><strong>目的：</strong> 不使用昂貴的穿透率測量儀，利用影像對比度來判斷塑膠是否混濁。</p>
+            <p><strong>代碼運作邏輯解析：</strong></p>
+            <ul class="step-list">
+                <li><code>cv2.COLOR_BGR2GRAY</code>：計算對比度只需要「亮度」資訊，不需要顏色，所以轉為灰階圖 (Grayscale)，降低運算量。</li>
+                <li><code>L_max - L_min</code>：透過產品看到的「最白」減去「最黑」。
+                    <br>如果是高透明產品，黑很黑 (例如 10)，白很白 (例如 240)，差值大 (230)。
+                    <br>如果是霧化產品，黑變灰 (例如 80)，白變暗 (例如 180)，差值小 (100)。</li>
+                <li><code>(L_max - L_min) / (L_max + L_min)</code>：這是 <strong>Michelson 對比度公式</strong>。
+                    <br>為什麼要除以 <code>(L_max + L_min)</code>？這是為了「歸一化」(Normalization)。
+                    <br>這樣無論當天燈光亮一點或暗一點，算出來的對比度數值都在 0.0 ~ 1.0 之間，方便設定統一的判定標準 (Threshold)。</li>
+                <li><code>+ 1e-5</code>：<strong>防呆機制。</strong> 如果畫面全黑 (L_max 和 L_min 都是 0)，分母會變成 0 引發程式崩潰 (Division by Zero)。加上一個極小數 (0.00001) 可避免此錯誤。</li>
+            </ul>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
