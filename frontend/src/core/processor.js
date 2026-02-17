@@ -6,8 +6,8 @@
 // Helper: Convert RGBA to RGB
 function ensureRGB(mat) {
     if (mat.channels() === 4) {
-        let rgb = new cv.Mat();
-        cv.cvtColor(mat, rgb, cv.COLOR_RGBA2RGB);
+        let rgb = new window.cv.Mat();
+        window.cv.cvtColor(mat, rgb, window.cv.COLOR_RGBA2RGB);
         mat.delete();
         return rgb;
     }
@@ -17,10 +17,10 @@ function ensureRGB(mat) {
 export const ProcessingEngine = {
     calibrateImage: (srcMat, refRect) => {
         // refRect: {x, y, w, h}
-        let roi = srcMat.roi(new cv.Rect(refRect.x, refRect.y, refRect.w, refRect.h));
+        let roi = srcMat.roi(new window.cv.Rect(refRect.x, refRect.y, refRect.w, refRect.h));
         
         // Calculate Mean
-        let mean = cv.mean(roi); // Returns [R, G, B, A]
+        let mean = window.cv.mean(roi); // Returns [R, G, B, A]
         roi.delete();
 
         // Avoid zero division
@@ -35,13 +35,13 @@ export const ProcessingEngine = {
         let gainB = target / avgB;
 
         // Apply Global Gain using multiply
-        // We can do this with cv.transform or iterate or multiply scalar?
+        // We can do this with window.cv.transform or iterate or multiply scalar?
         // JS OpenCV mat manipulation is trickier than Python.
         // Let's use multiply with a scalar per channel? 
         // Or simpler: split channels, multiply, merge.
         
-        let channels = new cv.MatVector();
-        cv.split(srcMat, channels);
+        let channels = new window.cv.MatVector();
+        window.cv.split(srcMat, channels);
         
         let r = channels.get(0);
         let g = channels.get(1);
@@ -56,8 +56,8 @@ export const ProcessingEngine = {
         g.convertTo(g, -1, gainG, 0);
         b.convertTo(b, -1, gainB, 0);
         
-        let merged = new cv.Mat();
-        cv.merge(channels, merged);
+        let merged = new window.cv.Mat();
+        window.cv.merge(channels, merged);
         
         // Cleanup
         r.delete(); g.delete(); b.delete(); channels.delete();
@@ -70,20 +70,20 @@ export const ProcessingEngine = {
      * Returns { deltaE, labValues: [L, a, b] }
      */
     calculateDeltaE: (calibratedMat, goldenLab, roiRect) => {
-        let roi = calibratedMat.roi(new cv.Rect(roiRect.x, roiRect.y, roiRect.w, roiRect.h));
+        let roi = calibratedMat.roi(new window.cv.Rect(roiRect.x, roiRect.y, roiRect.w, roiRect.h));
         
         // Gaussian Blur
-        let blurred = new cv.Mat();
-        cv.GaussianBlur(roi, blurred, new cv.Size(5, 5), 0);
+        let blurred = new window.cv.Mat();
+        window.cv.GaussianBlur(roi, blurred, new window.cv.Size(5, 5), 0);
         roi.delete();
 
         // Convert to Lab
-        let labMat = new cv.Mat();
-        cv.cvtColor(blurred, labMat, cv.COLOR_RGB2Lab);
+        let labMat = new window.cv.Mat();
+        window.cv.cvtColor(blurred, labMat, window.cv.COLOR_RGB2Lab);
         blurred.delete();
 
         // Mean Lab
-        let mean = cv.mean(labMat);
+        let mean = window.cv.mean(labMat);
         labMat.delete();
         
         let L1 = mean[0];
@@ -110,17 +110,17 @@ export const ProcessingEngine = {
 
     checkTransparency: (mat, blackRect, whiteRect) => {
         // Black ROI
-        let rBlack = mat.roi(new cv.Rect(blackRect.x, blackRect.y, blackRect.w, blackRect.h));
-        let grayBlack = new cv.Mat();
-        cv.cvtColor(rBlack, grayBlack, cv.COLOR_RGB2GRAY);
-        let meanBlack = cv.mean(grayBlack)[0];
+        let rBlack = mat.roi(new window.cv.Rect(blackRect.x, blackRect.y, blackRect.w, blackRect.h));
+        let grayBlack = new window.cv.Mat();
+        window.cv.cvtColor(rBlack, grayBlack, window.cv.COLOR_RGB2GRAY);
+        let meanBlack = window.cv.mean(grayBlack)[0];
         rBlack.delete(); grayBlack.delete();
 
         // White ROI
-        let rWhite = mat.roi(new cv.Rect(whiteRect.x, whiteRect.y, whiteRect.w, whiteRect.h));
-        let grayWhite = new cv.Mat();
-        cv.cvtColor(rWhite, grayWhite, cv.COLOR_RGB2GRAY);
-        let meanWhite = cv.mean(grayWhite)[0];
+        let rWhite = mat.roi(new window.cv.Rect(whiteRect.x, whiteRect.y, whiteRect.w, whiteRect.h));
+        let grayWhite = new window.cv.Mat();
+        window.cv.cvtColor(rWhite, grayWhite, window.cv.COLOR_RGB2GRAY);
+        let meanWhite = window.cv.mean(grayWhite)[0];
         rWhite.delete(); grayWhite.delete();
 
         // Contrast
