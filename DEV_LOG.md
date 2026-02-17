@@ -46,3 +46,13 @@ Development of the "Color Inspection Tool" transitioned from a full-stack (Pytho
 
 - **Testing**: Implement unit tests for the JS implementation of the color algorithms to ensure parity with the Python originals.
 - **Performance**: If image resolution increases significantly (4K+), consider moving image processing to a Web Worker to avoid freezing the UI thread.
+
+### 5. UI Layout & Terminology Refinement
+
+- **Issue**:
+  1.  "Workbench" header and "Reset All" button were partially obscured by the main image display area due to negative margins.
+  2.  The term "Standard Product" was ambiguous and requested to be changed to "Golden Sample".
+- **Resolution**:
+  1.  Removed negative bottom margin (`mb-[-10px]`) and added positive spacing (`mb-2`) to the header row.
+  2.  Updated all UI labels, button text, status messages, and confirmation dialogs to use "Golden Sample" consistency.
+- **Outcome**: Improved visual clarity and localized terminology alignment.
