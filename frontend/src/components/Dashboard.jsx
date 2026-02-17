@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { ProcessingEngine } from '../core/processor';
 
 export default function Dashboard() {
@@ -91,21 +91,52 @@ export default function Dashboard() {
       reader.readAsDataURL(file);
   };
 
-  /** MOUSE ROI LOGIC **/
+  // Wrap fitToScreen in useCallback to avoid dependency issues
+  const fitToScreen = useCallback(() => {
+      if (!imageSize.w || !imageSize.h || !containerRef.current) return;
+      // Find the wrapper (parent of container) dimensions
+      const wrapper = containerRef.current.parentElement;
+      const availW = wrapper.clientWidth;
+      const availH = wrapper.clientHeight;
+      
+      const scaleW = availW / imageSize.w;
+      const scaleH = availH / imageSize.h;
+      
+      // Use 0.95 factor to leave a tiny margin
+      const newScale = Math.min(scaleW, scaleH) * 0.95; 
+      setScale(newScale);
+  }, [imageSize]);
+  
+  // Auto-fit on new image load
+  useEffect(() => {
+      if (imageSize.w && imageSize.h) {
+          fitToScreen();
+      }
+  }, [imageSize, fitToScreen]);
+
+  /** MOUSE INTERACTION **/
   const getEventPos = (e) => {
-      // Logic adjusted for scale
-      const rect = containerRef.current.getBoundingClientRect();
-      const x = (e.clientX - rect.left) / scale; // Divide by scale to get original coordinates relative to unscaled container
-      const y = (e.clientY - rect.top) / scale;
-      return { x, y, rect };
+     // Standardize event relative to the IMAGE container (which is now explicitly sized)
+     const rect = containerRef.current.getBoundingClientRect();
+     
+     // Visual coordinates relative to the image top-left
+     const visualX = e.clientX - rect.left;
+     const visualY = e.clientY - rect.top;
+     
+     // Logic coordinate (native image pixels)
+     // Since width = native * scale, native = visual / scale
+     const x = visualX / scale;
+     const y = visualY / scale;
+     
+     return { x, y, visualX, visualY };
   };
   
   const handleMouseDown = (e) => {
-      if (!selectionMode || !containerRef.current) return;
+      if ((!selectionMode && !e.shiftKey) || !containerRef.current) return;
       e.preventDefault();
       const { x, y } = getEventPos(e);
       setIsDrawing(true);
-      setDrawStart({ x, y });
+      setDrawStart({ x, y }); // Store NATIVE coordinates
       setCurrentRect({ x, y, w: 0, h: 0 });
   };
   
@@ -113,43 +144,92 @@ export default function Dashboard() {
       if (!isDrawing || !containerRef.current) return;
       e.preventDefault();
       const { x, y } = getEventPos(e);
+      
       const w = x - drawStart.x;
       const h = y - drawStart.y;
-      setCurrentRect({ x: w > 0 ? drawStart.x : x, y: h > 0 ? drawStart.y : y, w: Math.abs(w), h: Math.abs(h) });
+      
+      // Store as NATIVE coordinates
+      setCurrentRect({ 
+          x: w > 0 ? drawStart.x : x, 
+          y: h > 0 ? drawStart.y : y, 
+          w: Math.abs(w), 
+          h: Math.abs(h) 
+      });
   };
   
   const handleMouseUp = (e) => {
-      if (!isDrawing || !selectionMode || !containerRef.current) return;
+      if (!isDrawing || !containerRef.current) return;
       e.preventDefault();
       setIsDrawing(false);
-      // Coordinate Mapping needs original dimensions (unscaled)
-      // containerRef dimensions are effectively scaled visually, but getBoundingClientRect returns scaled px
-      // The logic:
-      // imageSize = Original Image W/H (e.g. 1920x1080)
-      // containerRef.width (unscaled) = Display Width (e.g. 800px)
-      // We need mapping factor = imageSize / containerUnscaledSize
       
-      // Since our getPosition creates coordinates relative to UN-SCALED container (because we divide by scale),
-      // we can just use the unscaled rect.width/height for ratio calculation.
+      // If rect is too small, ignore
+      if (!currentRect || currentRect.w < 5 || currentRect.h < 5) {
+          setCurrentRect(null);
+          return;
+      }
       
-      const rect = containerRef.current.getBoundingClientRect();
-      // Unscaled dimensions:
-      const containerW = rect.width / scale;
-      const containerH = rect.height / scale;
-      
-      const scaleX = imageSize.w / containerW;
-      const scaleY = imageSize.h / containerH;
-      
-      if (currentRect && currentRect.w > 5 && currentRect.h > 5) {
-          const finalRect = { x: Math.round(currentRect.x * scaleX), y: Math.round(currentRect.y * scaleY), w: Math.round(currentRect.w * scaleX), h: Math.round(currentRect.h * scaleY) };
-          setRois(prev => ({ ...prev, [selectionMode]: finalRect }));
+      // Logic for "Zoom Area"
+      if (selectionMode === 'zoom') {
+          handleAreaZoom(currentRect);
+          // Auto switch back to null or keep zoom tool? Usually keep or switch.
+          // Let's reset to allow panning or viewing.
+          setSelectionMode(null);
+      } 
+      // Logic for ROIs
+      else if (selectionMode) {
+          setRois(prev => ({ ...prev, [selectionMode]: currentRect }));
           setSelectionMode(null); 
       }
+      
       setCurrentRect(null);
+  };
+  
+  const handleAreaZoom = (rectNative) => {
+      // rectNative is in native image pixels (e.g. 500px width on 1920px image)
+      
+      // 1. Calculate desired scale
+      // We want the drawn rect to fill the view wrapper
+      const wrapper = containerRef.current.parentElement;
+      const availW = wrapper.clientWidth;
+      const availH = wrapper.clientHeight;
+      
+      // Calculate scale needed to fit the SELECTION into the AVAILABLE SPACE
+      const scaleW = availW / rectNative.w;
+      const scaleH = availH / rectNative.h;
+      
+      // Choose the smaller scale to ensure it fits (contain)
+      let newScale = Math.min(scaleW, scaleH) * 0.95; 
+      
+      // Cap max zoom
+      newScale = Math.min(newScale, 10); // Max 10x
+      
+      setScale(newScale);
+      
+      // 2. Scroll to center
+      // New dimensions of the total image
+      // Center of ROI in native pixels
+      const roiCenterX = rectNative.x + rectNative.w / 2;
+      const roiCenterY = rectNative.y + rectNative.h / 2;
+      
+      // We need to scroll the wrapper such that (roiCenter * newScale) is at (avail / 2)
+      // scrollLeft = (roiCenterX * newScale) - (availW / 2)
+      
+      // We must wait for render Update? 
+      // React state update is async. We can use requestAnimationFrame or setTimeout
+      setTimeout(() => {
+          if (wrapper) {
+            wrapper.scrollTo({
+                left: (roiCenterX * newScale) - (availW / 2),
+                top: (roiCenterY * newScale) - (availH / 2),
+                behavior: 'smooth'
+            });
+          }
+      }, 50);
   };
 
   const captureFrame = () => {
-    if (!canvasRef.current || !cvReady) return null;
+    // Check for global cv availability
+    if (!canvasRef.current || !cvReady || !window.cv) return null;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (sourceType === 'camera' && videoRef.current && videoRef.current.readyState === 4) {
@@ -161,10 +241,10 @@ export default function Dashboard() {
     } else { return null; }
     
     try {
-        let src = cv.imread(canvasRef.current);
-        let rgb = new cv.Mat();
-        if (src.channels() === 4) cv.cvtColor(src, rgb, cv.COLOR_RGBA2RGB);
-        else if (src.channels() === 1) cv.cvtColor(src, rgb, cv.COLOR_GRAY2RGB);
+        let src = window.cv.imread(canvasRef.current);
+        let rgb = new window.cv.Mat();
+        if (src.channels() === 4) window.cv.cvtColor(src, rgb, window.cv.COLOR_RGBA2RGB);
+        else if (src.channels() === 1) window.cv.cvtColor(src, rgb, window.cv.COLOR_GRAY2RGB);
         else src.copyTo(rgb);
         src.delete(); return rgb;
     } catch(e) { console.error(e); return null; }
@@ -178,7 +258,7 @@ export default function Dashboard() {
           if (rois.ref.w <= 0 || rois.standard.w <= 0) throw new Error("Please draw boxes for Color Card and Golden Sample first.");
           let calibrated = ProcessingEngine.calibrateImage(mat, rois.ref);
           let resStd = ProcessingEngine.calculateDeltaE(calibrated, null, rois.standard);
-          cv.imshow(canvasRef.current, calibrated);
+          window.cv.imshow(canvasRef.current, calibrated);
           let thumb = canvasRef.current.toDataURL('image/jpeg', 0.5);
           setLockedStandard({ lab: resStd.lab, image: thumb });
           alert("Success: Golden Sample values saved.");
@@ -207,82 +287,91 @@ export default function Dashboard() {
   };
 
   const DisplayArea = () => (
-      <div className="relative border border-white/10 rounded-2xl bg-black shadow-2xl overflow-hidden" style={{ minHeight: '400px' }}>
+      <div className="relative border border-white/10 rounded-2xl bg-black shadow-2xl overflow-hidden" style={{ minHeight: '500px' }}>
           {/* Controls Overlay */}
-          <div className="absolute top-2 right-2 z-50 flex gap-2">
-              <div className="glass-panel p-1 flex gap-1 rounded-lg">
-                  <button onClick={() => setScale(s => Math.max(0.5, s - 0.1))} className="p-2 hover:bg-white/20 rounded">➖</button>
-                  <span className="p-2 text-xs font-bold w-12 text-center">{(scale * 100).toFixed(0)}%</span>
-                  <button onClick={() => setScale(s => Math.min(4, s + 0.1))} className="p-2 hover:bg-white/20 rounded">➕</button>
-                  <button onClick={() => setScale(1)} className="p-2 hover:bg-white/20 rounded text-xs ml-2">Reset Zoom</button>
+          <div className="absolute top-2 right-2 z-50 flex gap-2 pointer-events-none">
+              <div className="glass-panel p-1 flex gap-1 rounded-lg pointer-events-auto">
+                  <button onClick={() => setScale(s => Math.max(0.1, s * 0.8))} className="p-2 hover:bg-white/20 rounded" title="Zoom Out">➖</button>
+                  <span className="p-2 text-xs font-bold w-16 text-center tabular-nums">{(scale * 100).toFixed(0)}%</span>
+                  <button onClick={() => setScale(s => Math.min(10, s * 1.2))} className="p-2 hover:bg-white/20 rounded" title="Zoom In">➕</button>
+                  <button onClick={fitToScreen} className="p-2 hover:bg-white/20 rounded text-xs ml-2 px-3 border-l border-white/10">Fit Screen</button>
+                  <button 
+                      onClick={() => setSelectionMode(selectionMode === 'zoom' ? null : 'zoom')} 
+                      className={`p-2 ml-2 rounded text-xs px-3 border border-white/10 flex items-center gap-2 ${selectionMode === 'zoom' ? 'bg-cyan-500/20 text-cyan-400 ring-1 ring-cyan-400' : 'hover:bg-white/20'}`}
+                  >
+                      <span>🔍</span> Area Zoom
+                  </button>
               </div>
           </div>
           
           {/* Scrollable Container Wrapper */}
-          <div className="w-full h-[60vh] overflow-auto flex justify-center items-center bg-gray-900/50">
-             {/* Scalable Content */}
-             <div 
-                ref={containerRef}
-                className={`relative flex-shrink-0 origin-center transition-transform duration-200 ease-out select-none cursor-${selectionMode ? 'crosshair' : 'default'} touch-none`}
-                style={{ transform: `scale(${scale})`, transformOrigin: 'top left' }} // Top Left assumes container grows
-                onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}
-             >
-                 {sourceType === 'camera' && stream ? <video ref={videoRef} autoPlay playsInline className="max-w-none pointer-events-none" /> :
-                  sourceType === 'upload' && uploadedImageSrc ? <img src={uploadedImageSrc} className="max-w-none object-contain pointer-events-none" /> :
-                  <div className="p-20 text-art-muted flex flex-col items-center animate-pulse pointer-events-none w-[600px] h-[400px] flex justify-center"><span className="text-6xl mb-4">📷 / 📁</span><span className="text-xl font-bold">Step 1: Load Image</span></div>}
-          
-                 {/* ROI Overlays */}
-                 {containerRef.current && (sourceType === 'upload' || stream) && Object.entries(rois).map(([key, r]) => {
-                     // Need to calculate position relative to UN-SCALED container size
-                     // But here we are INSIDE the scaled container.
-                     // A standard absolute div placed at (rx, ry) in a scaled container 
-                     // will also be scaled by the parent transform!
-                     // So we just need coordinates relative to the Image itself.
-                     // Wait, previous logic used screen coordinates -> image mapping.
-                     // rois store {x,y,w,h} in IMAGE PIXELS.
+          <div className="w-full h-[65vh] overflow-auto flex bg-gray-900/50 relative custom-scrollbar">
+             {/* Centering Wrapper: Ensures that if content is smaller than view, it's centered. 
+                 If larger, it starts at top-left allowing scroll. 
+                 Flex 'justify-center items-center' works well for smaller, but for larger it might clip 'top-left' if not careful.
+                 Safe approach: 'min-w-full min-h-full flex items-center justify-center' works if child is margin:auto? 
+                 Actually 'grid place-items-center' is robust.
+             */}
+             <div className="min-w-full min-h-full grid place-items-center p-10"> 
+                 {/* Sized Content Container */}
+                 <div 
+                    ref={containerRef}
+                    className={`relative shadow-2xl transition-all duration-100 ease-out select-none ${selectionMode ? 'cursor-crosshair' : 'cursor-default'}`}
+                    style={{ 
+                        // EXPLICIT SIZING replace transform
+                        width: imageSize.w * scale, 
+                        height: imageSize.h * scale,
+                        // No transform!
+                    }}
+                    onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={handleMouseUp}
+                 >
+                     {sourceType === 'camera' && stream ? <video ref={videoRef} autoPlay playsInline className="w-full h-full object-contain pointer-events-none" /> :
+                      sourceType === 'upload' && uploadedImageSrc ? <img src={uploadedImageSrc} className="w-full h-full object-contain pointer-events-none" /> :
+                      <div className="w-full h-full flex items-center justify-center text-art-muted border-2 border-dashed border-white/10 rounded-lg">
+                          <div className="text-center animate-pulse">
+                              <div className="text-4xl mb-2">📷</div>
+                              <div>No Image</div>
+                          </div>
+                      </div>}
+              
+                     {/* ROI Overlays - Rendered using percentage to adapt to container size automatically? 
+                         OR native pixel * scale. Since container is natively sized to (w*scale), 
+                         we can use native pixel * scale for positions.
+                     */}
+                     {containerRef.current && (sourceType === 'upload' || stream) && Object.entries(rois).map(([key, r]) => (
+                         <div key={key} className={`absolute border-2 ${key===selectionMode?'animate-pulse':''} border-${{ref:'yellow-400',standard:'cyan-400',test:'purple-400'}[key]||'white'} ${key==='standard'&&lockedStandard?'opacity-40 border-dashed':''}`}
+                             style={{ 
+                                 left: r.x * scale, 
+                                 top: r.y * scale, 
+                                 width: r.w * scale, 
+                                 height: r.h * scale, 
+                                 pointerEvents: 'none' 
+                             }}>
+                             <span className={`bg-${{ref:'yellow-400',standard:'cyan-400',test:'purple-400'}[key]||'white'}/80 text-black px-1 absolute -top-5 left-0 text-[10px] font-bold whitespace-nowrap scale-item`}>
+                                {key.toUpperCase()}{key==='standard'&&lockedStandard?' (LOCKED)':''}
+                             </span>
+                         </div>
+                     ))}
                      
-                     // If we are rendering inside the scaled container which WRAPS the image:
-                     // The container size = Image Size (approximately, if img max-w-none).
-                     // If uploaded image is large (4000px), viewing it at scale 1 might be huge.
-                     // We need to constrain the inner container to be "Native Image Size" or "Fit Size"?
-                     // Let's assume the inner div takes the size of the image.
-                     
-                     // To make this robust:
-                     // 1. rois are in IMAGE PIXELS.
-                     // 2. We render overlays using percentages or map back to pixels?
-                     // If container size == Image Size, we use r.x directly.
-                     
-                     const displayRect = containerRef.current.getBoundingClientRect();
-                     const unscaledW = displayRect.width / scale; // Unscaled width of the container (which wraps image)
-                     const unscaledH = displayRect.height / scale;
-                     
-                     // If image is loaded, typically the containerRef div auto-sizes to fit the img child (because of flex/inline-block behavior)?
-                     // Let's ensure containerRef has 'display: inline-block' or similar.
-                    
-                     const scaleX = unscaledW / imageSize.w; 
-                     const scaleY = unscaledH / imageSize.h;
-                     // Ideally unscaledW should EQUAL imageSize.w if we display at 1:1 natural.
-                     // But if we use 'max-h-[60vh] object-contain', the img is resized by CSS.
-                     // If we use 'max-w-none', img is natural size?
-                     
-                     // Let's stick to the previous behavior where `img` had `max-h-[60vh]`.
-                     // So unscaled container matches the "Fit to Screen" size of the image.
-                     // Then we scale THAT up/down.
-                     
-                     return (<div key={key} className={`absolute border-2 ${key===selectionMode?'animate-pulse':''} border-${{ref:'yellow-400',standard:'cyan-400',test:'purple-400'}[key]||'white'} ${key==='standard'&&lockedStandard?'opacity-40 border-dashed':''}`}
-                         style={{ 
-                             left: r.x * scaleX, 
-                             top: r.y * scaleY, 
-                             width: r.w * scaleX, 
-                             height: r.h * scaleY, 
-                             pointerEvents: 'none' 
-                         }}>
-                         <span className={`bg-${{ref:'yellow-400',standard:'cyan-400',test:'purple-400'}[key]||'white'}/80 text-black px-1 absolute -top-5 left-0 text-[10px] font-bold whitespace-nowrap`}>{key.toUpperCase()}{key==='standard'&&lockedStandard?' (LOCKED)':''}</span></div>);
-                })}
-                {isDrawing && currentRect && <div className="absolute border-2 border-green-400 bg-green-400/20" style={{ left: currentRect.x, top: currentRect.y, width: currentRect.w, height: currentRect.h, pointerEvents: 'none' }}></div>}
+                     {/* Drawing Rect - Green Dash */}
+                     {isDrawing && currentRect && (
+                        <div className={`absolute border-2 ${selectionMode === 'zoom' ? 'border-blue-400 bg-blue-400/10 border-dashed' : 'border-green-400 bg-green-400/20'}`}
+                             style={{ 
+                                 left: currentRect.x * scale, 
+                                 top: currentRect.y * scale, 
+                                 width: currentRect.w * scale, 
+                                 height: currentRect.h * scale, 
+                                 pointerEvents: 'none'
+                             }}>
+                             {selectionMode === 'zoom' && <span className="absolute -top-5 left-0 text-blue-400 text-xs font-bold bg-black/50 px-1">ZOOM AREA</span>}
+                        </div>
+                     )}
+                 </div>
              </div>
           </div>
-          {selectionMode && !isDrawing && <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-black/80 px-4 py-2 rounded-full text-white text-xs border border-white/20 animate-bounce pointer-events-none shadow-lg z-40">🖌️ Draw Box: <span className="font-bold text-green-400 ml-2">{selectionMode.toUpperCase()}</span></div>}
+          {selectionMode && !isDrawing && <div className="absolute top-16 left-1/2 -translate-x-1/2 bg-black/80 px-4 py-2 rounded-full text-white text-xs border border-white/20 animate-bounce pointer-events-none shadow-lg z-40 flex items-center gap-2">
+              {selectionMode === 'zoom' ? '🔍 Draw a box to Zoom In' : <span>🖌️ Draw Box: <span className="font-bold text-green-400 ml-2">{selectionMode.toUpperCase()}</span></span>}
+          </div>}
       </div>
   );
 

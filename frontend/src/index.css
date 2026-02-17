@@ -68,3 +68,36 @@ body {
 .status-badge {
   @apply px-4 py-1 rounded-full text-sm font-bold uppercase tracking-wider shadow-sm;
 }
+
+/* Custom Scrollbar for Dashboard Viewport */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 5px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Ensure font size doesn't get ridiculously huge when scaled - we might want to scale font inversely? 
+   Actually, if we zoom in, we WANT the label to stay readable. 
+   If elements are simply sized, the font size remains 10px in the container, 
+   so if container is huge, 10px looks tiny. 
+   We might want to scale text up.
+   The current implementation scales position/width/height by `scale`.
+   Font-size: 10px is fixed.
+   So labels will look smaller as we zoom in relative to the image content?
+   No, if I zoom in (scale=2), the div is 2x bigger. The font is 10px.
+   So the font looks 1/2 size relative to the features?
+   Actually, usually we want font size to be constant relative to SCREEN, not Image.
+   But here the label is inside the scaled container?
+   No, with 'width: scale * w', the container is actually large. 
+   font-size: 10px is 10 screen pixels.
+   So labels will stay constant screen size. This is GOOD.
+*/

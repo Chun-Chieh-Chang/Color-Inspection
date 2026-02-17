@@ -56,3 +56,14 @@ Development of the "Color Inspection Tool" transitioned from a full-stack (Pytho
   1.  Removed negative bottom margin (`mb-[-10px]`) and added positive spacing (`mb-2`) to the header row.
   2.  Updated all UI labels, button text, status messages, and confirmation dialogs to use "Golden Sample" consistency.
 - **Outcome**: Improved visual clarity and localized terminology alignment.
+
+### 6. Zoom & Interaction Improvements
+
+- **Issue**:
+  1.  Zooming caused ROI selection displacement (user reported "misalignment").
+  2.  Buttons (+/-) were not sufficient for precise zooming; user requested "Area Zoom".
+- **Resolution**:
+  1.  Refactored `DisplayArea` to use explicit `width`/`height` scaling instead of CSS `transform`, allowing robust coordinate mapping.
+  2.  Implemented `handleAreaZoom` allowing users to draw a box to zoom into that specific area.
+  3.  Added "Fit Screen" and "Reset Zoom" shortcuts.
+- **Outcome**: ROI drawing is now accurate at any zoom level, and users can intuitively inspect details using the Area Zoom tool.
