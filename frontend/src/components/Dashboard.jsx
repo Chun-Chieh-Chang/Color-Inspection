@@ -470,7 +470,7 @@ export default function Dashboard() {
                 return (
                   <div
                     key={key}
-                    className={`absolute border-2 ${key === selectionMode ? "animate-pulse" : ""} border-${color} ${key === "standard" && lockedStandard ? "opacity-40 border-dashed" : ""}`}
+                    className={`absolute border-[2px] ${key === selectionMode ? "animate-pulse" : ""} border-${color} ${key === "standard" && lockedStandard ? "opacity-40 border-dashed" : ""}`}
                     style={{
                       left: r.x * scale,
                       top: r.y * scale,
@@ -492,13 +492,14 @@ export default function Dashboard() {
             {/* Drawing Rect - Green Dash */}
             {isDrawing && currentRect && (
               <div
-                className={`absolute border-2 ${selectionMode === "zoom" ? "border-blue-400 bg-blue-400/10 border-dashed" : "border-green-400 bg-green-400/20"}`}
+                className={`absolute border-[2px] ${selectionMode === "zoom" ? "border-blue-400 bg-blue-400/10 border-dashed" : "border-green-400 bg-green-400/20"}`}
                 style={{
                   left: currentRect.x * scale,
                   top: currentRect.y * scale,
                   width: currentRect.w * scale,
                   height: currentRect.h * scale,
                   pointerEvents: "none",
+                  boxSizing: "border-box",
                 }}
               >
                 {selectionMode === "zoom" && (
