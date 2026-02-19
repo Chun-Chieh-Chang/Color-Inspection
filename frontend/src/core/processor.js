@@ -3,16 +3,7 @@
  * Handles calibration, Lab conversion, Delta E, and Transparency check.
  */
 
-// Helper: Convert RGBA to RGB
-function ensureRGB(mat) {
-    if (mat.channels() === 4) {
-        let rgb = new window.cv.Mat();
-        window.cv.cvtColor(mat, rgb, window.cv.COLOR_RGBA2RGB);
-        mat.delete();
-        return rgb;
-    }
-    return mat;
-}
+
 
 export const ProcessingEngine = {
     calibrateImage: (srcMat, refRect) => {

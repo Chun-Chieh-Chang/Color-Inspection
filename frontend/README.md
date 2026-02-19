@@ -1,16 +1,42 @@
-# React + Vite
+# Color Inspection Tool (Web Version)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A client-side web application for inspecting color differences (Delta E) and material transparency using computer vision techniques directly in the browser.
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- **Color Inspection**: Calculate Delta E (CIE76/2000) between a "Golden Sample" and a "Test Product".
+- **Transparency Check**: Analyze material transparency by comparing contrast over Black/White backgrounds.
+- **Automatic Calibration**: Use a reference White Card to calibrate white balance before inspection.
+- **Interactive UI**:
+  - **Area Zoom**: Draw a box to zoom into specific details.
+  - **5-Point ROI**: Easily select Calibration, Golden Sample, Test Product, Black Background, and White Background regions.
+  - **Golden Sample Locking**: Save the standard reference values to inspect multiple test products efficiently.
+- **Privacy First**: All processing happens locally in your browser using OpenCV.js; no images are uploaded to any server.
 
-## React Compiler
+## Usage
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+1.  **Clone the repository**:
+    ```bash
+    git clone https://github.com/your-repo/color-inspection.git
+    cd color-inspection/frontend
+    ```
+2.  **Install dependencies**:
+    ```bash
+    npm install
+    ```
+3.  **Run locally**:
+    ```bash
+    npm run dev
+    ```
+4.  **Build for production**:
+    ```bash
+    npm run build
+    ```
+    The output will be in the `dist` folder, ready to be deployed to GitHub Pages or any static host.
 
-## Expanding the ESLint configuration
+## Tech Stack
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- **Framework**: React 19 + Vite
+- **Styling**: Tailwind CSS v4
+- **Computer Vision**: OpenCV.js (WASM)
+- **Deployment**: GitHub Pages (via Actions)
