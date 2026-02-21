@@ -67,3 +67,25 @@ Development of the "Color Inspection Tool" transitioned from a full-stack (Pytho
   2.  Implemented `handleAreaZoom` allowing users to draw a box to zoom into that specific area.
   3.  Added "Fit Screen" and "Reset Zoom" shortcuts.
 - **Outcome**: ROI drawing is now accurate at any zoom level, and users can intuitively inspect details using the Area Zoom tool.
+
+### 7. Transparency Detection & Localization
+
+- **Issue**:
+  1.  The transparency detection feature was previously part of the core engine but not exposed in the UI.
+  2.  The UI was primarily in English with Simplified Chinese, which was not ideal for the target user base (Traditional Chinese).
+  3.  Automated browser testing failed due to environment issues (`$HOME` not set), preventing automated verification.
+- **Resolution**:
+  1.  **Transparency UI**: Added two new ROI types ("Black Bg" and "White Bg") and implemented the contrast calculation logic `(White - Black) / (White + Black)`. Added a progress bar to visualize the result.
+  2.  **Localization**: Replaced all interface text with Traditional Chinese, while keeping key English terms (e.g., Delta E) for clarity.
+  3.  **Help Feature**: Added a "Help Modal" (`Using Instructions`) with a left-aligned layout for readability, explaining the entire workflow.
+  4.  **Testing Strategy**: Due to the automation failure, we relied on manual user verification (User confirmed UI changes via local dev server).
+- **Outcome**: The tool now supports full transparency inspection and is localized for Traditional Chinese users.
+
+### 8. Page Title & Project Information Correction
+
+- **Issue**: The browser tab title (bookmark) showed "frontend" instead of the project name "Color-Inspection".
+- **Root Cause**: The `index.html` and `package.json` files were initialized with the default folder name "frontend" instead of the intended project name.
+- **Corrective Action**:
+  1. Updated `<title>` in `frontend/index.html` to `Color-Inspection`.
+  2. Updated `name` in `frontend/package.json` to `color-inspection`.
+- **Lesson**: Ensure project metadata (Title, Package Name) is updated immediately after initialization to reflect the actual project identity.

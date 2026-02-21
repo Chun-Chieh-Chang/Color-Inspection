@@ -10,9 +10,9 @@
 - **What to use**: A **Neutral Grey Card** (best) or a **Plain White Paper**.
 - **Why**: Cameras change color based on light (yellowish indoors, bluish outdoors). The software needs a neutral reference to "cancel out" the colored light so it can see the true color of your product.
 
-### 2. Standard Product (Target)
+### 2. Golden Sample (Target)
 
-**This IS your golden sample.**
+**This IS your perfect item.**
 
 - **Purpose**: To define the "Perfect Color" you want to achieve.
 - **What to use**: Your approved sample, Pantone chip, or master part.
@@ -21,6 +21,17 @@
 
 - **Purpose**: The production part you want to check.
 - **What to use**: The actual item from the injection molding machine.
+
+---
+
+## Workspace Controls
+
+### Zoom & View Navigation
+
+- **🔍 Area Zoom**: Click "Area Zoom" and draw a box around the detail you want to see. The view will automatically zoom and center on that area.
+- **➕ / ➖ Buttons**: Incremental zoom centering on the current view.
+- **Fit Screen**: Quickly reset the view to fit the entire image in the window.
+- **Panning**: Use the scrollbars (styled for better visibility) to navigate around a zoomed image.
 
 ---
 
@@ -33,7 +44,7 @@
 1.  **Load Image**.
 2.  **Draw Box 1 (Ref)**: Draw around the **White Card / Grey Card**.
     - _Do NOT draw on the colored product._
-3.  **Draw Box 2 (Standard)**: Draw around your **Golden Sample**.
+3.  **Draw Box 2 (Golden Sample)**: Draw around your **Golden Sample**.
 4.  **Draw Box 3 (Test)**: Draw around your **Production Part**.
 5.  **Click INSPECT**.
 
@@ -41,6 +52,6 @@
 
 ## FAQ
 
-**Q: Why can't I just use my Standard Product as the Ref?**
+**Q: Why can't I just use my Golden Sample as the Ref?**
 A: Because if your product is Yellow, the camera sees "Yellow Object + Indoor Light". The software doesn't know how much is "Object Color" and how much is "Light Color".
 By using a **White Card (Ref)**, the software sees "White Object + Indoor Light". Since the object _should_ be white, any color it sees is purely "Indoor Light". It subtracts this light color from your product to get the true product color.
